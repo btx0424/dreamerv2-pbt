@@ -44,7 +44,7 @@ def main():
   print('Logdir', logdir)
 
   import tensorflow as tf
-  tf.config.experimental_run_functions_eagerly(not config.jit)
+  tf.config.run_functions_eagerly(not config.jit)
   message = 'No GPU found. To actually train on CPU remove this assert.'
   assert tf.config.experimental.list_physical_devices('GPU'), message
   for gpu in tf.config.experimental.list_physical_devices('GPU'):
