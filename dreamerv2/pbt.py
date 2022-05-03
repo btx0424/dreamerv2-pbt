@@ -1,6 +1,6 @@
 import dreamerv2.common as common
 import dreamerv2.agent as agent
-from ray.tune.schedulers import pb2
+from ray.tune.schedulers import pb2, PopulationBasedTraining
 from ray import tune
 import os
 import logging
@@ -152,6 +152,7 @@ def train(config, checkpoint_dir=None):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
+    parser.add_argument("--pb2", action="store_true", default=False)
     parser.add_argument("-N", type=int, default=1)
     parser.add_argument("--task", type=str, default="walker_walk",
         choices=["walker_walk", "cheetah_run", "hopper_hop", 
@@ -172,20 +173,27 @@ if __name__ == "__main__":
         "actor_grad_mix": tune.uniform(0, 1),
     })
 
-    scheduler = pb2.PB2(
-        time_attr="training_iteration",
-        metric="eval_reward", mode="max",
-        perturbation_interval=3,
-        # burn_in_period=5,
-        # hyperparam_mutations={
-        #     "imag_horizon": tune.randint(5, 50),
-        #     "actor_grad_mix": lambda: np.clip(np.random.uniform(-0.2, 1.2), 0, 1),
-        # }
-        hyperparam_bounds={
-            "imag_horizon" : [5, 50],
-            "actor_grad_mix": [0, 1],
-        }
-    )
+    if args.pb2:
+        scheduler = pb2.PB2(
+            time_attr="training_iteration",
+            metric="eval_reward", mode="max",
+            perturbation_interval=3,
+            hyperparam_bounds={
+                "imag_horizon" : [5, 50],
+                "actor_grad_mix": [0, 1],
+            }
+        )
+    else:
+        scheduler = PopulationBasedTraining(
+            time_attr="training_iteration",
+            metric="eval_reward", mode="max",
+            perturbation_interval=3,
+            burn_in_period=5,
+            hyperparam_mutations={
+                "imag_horizon": tune.randint(5, 50),
+                "actor_grad_mix": lambda: np.clip(np.random.uniform(-0.2, 1.2), 0, 1),
+            }
+        )
 
     reporter = tune.CLIReporter(max_report_frequency=60)
 
